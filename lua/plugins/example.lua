@@ -19,7 +19,14 @@ return {
       colorscheme = "gruvbox",
     },
   },
-
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    priority = 1000,
+    config = function()
+      require("catppuccin").setup()
+    end,
+  },
   -- change trouble config
   {
     "folke/trouble.nvim",
