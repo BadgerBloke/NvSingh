@@ -147,9 +147,6 @@ return {
     opts = {
       ensure_installed = {
         "bash",
-        "elixir",
-        "eex",
-        "heex",
         "html",
         "javascript",
         "json",
@@ -164,9 +161,69 @@ return {
         "vim",
         "yaml",
       },
-      highlight = { enabled = true },
-      indent = { enabled = true },
     },
+  },
+
+  {
+    "nvim-treesitter/nvim-treesitter",
+    config = function()
+      require("nvim-treesitter.configs").setup({
+        ensure_installed = { "elixir", "eex", "heex" },
+        sync_install = false,
+        auto_install = true,
+        ignore_install = {},
+        highlight = { enable = true },
+        indent = { enable = true },
+        modules = {},
+      })
+    end,
+  },
+
+  {
+    "hrsh7th/nvim-cmp",
+    dependencies = {
+      -- install different completion source
+      "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/cmp-buffer",
+      "hrsh7th/cmp-path",
+    },
+    config = function()
+      local cmp = require("cmp")
+      cmp.setup({
+        -- add different completion source
+        sources = cmp.config.sources({
+          { name = "nvim_lsp" },
+          { name = "buffer" },
+          { name = "path" },
+        }),
+        -- using default mapping preset
+        mapping = cmp.mapping.preset.insert({
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
+        }),
+        snippet = {
+          -- you must specify a snippet engine
+          expand = function(args)
+            -- using neovim v0.10 native snippet feature
+            -- you can also use other snippet engines
+            vim.snippet.expand(args.body)
+          end,
+        },
+      })
+    end,
+  },
+
+  {
+    "neovim/nvim-lspconfig",
+    config = function()
+      local lspconfig = require("lspconfig")
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+      lspconfig.elixirls.setup({
+        cmd = { "elixir-ls" },
+        -- set default capabilities for cmp lsp completion source
+        capabilities = capabilities,
+      })
+    end,
   },
 
   -- since `vim.tbl_deep_extend`, can only merge tables and not lists, the code above
