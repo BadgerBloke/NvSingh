@@ -12,3 +12,16 @@ Refer to the [documentation](https://lazyvim.github.io/installation) to get star
 ```bash
 TSInstall elixir eex heex
 ```
+
+## External Dependencies for Ubuntu
+
+telescope.live_grep needs ripgrep and fd so install these using
+following command on Ubuntu
+
+```bash
+sudo apt-get install ripgrep
+```
+
+```bash
+sudo apt-get install fd-find
+```
