@@ -42,9 +42,10 @@ return {
   -- first: disable default <tab> and <s-tab> behavior in LuaSnip
   {
     "L3MON4D3/LuaSnip",
-    keys = function()
-      return {}
-    end,
+    keys = {
+      { "<tab>", false, mode = { "i", "s" } },
+      { "<s-tab>", false, mode = { "i", "s" } },
+    },
   },
   -- then: setup supertab in cmp
 }

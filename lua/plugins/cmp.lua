@@ -2,20 +2,23 @@ return {
   -- override nvim-cmp and add cmp-emoji
   {
     "hrsh7th/nvim-cmp",
-    dependencies = { "hrsh7th/cmp-emoji" },
-    ---@param opts cmp.ConfigSchema
-    opts = function(_, opts)
-      table.insert(opts.sources, { name = "emoji" })
-    end,
-  },
-  {
-    "hrsh7th/nvim-cmp",
+    keys = {
+      { "<tab>", false, mode = { "i", "s" } },
+      { "<s-tab>", false, mode = { "i", "s" } },
+    },
+
     dependencies = {
       "hrsh7th/cmp-emoji",
+      -- install different completion source
+      "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/cmp-buffer",
+      "hrsh7th/cmp-path",
     },
+
     ---@param opts cmp.ConfigSchema
     opts = function(_, opts)
       local has_words_before = function()
+        table.insert(opts.sources, { name = "emoji" })
         unpack = unpack or table.unpack
         local line, col = unpack(vim.api.nvim_win_get_cursor(0))
         return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
@@ -49,15 +52,7 @@ return {
         end, { "i", "s" }),
       })
     end,
-  },
-  {
-    "hrsh7th/nvim-cmp",
-    dependencies = {
-      -- install different completion source
-      "hrsh7th/cmp-nvim-lsp",
-      "hrsh7th/cmp-buffer",
-      "hrsh7th/cmp-path",
-    },
+
     config = function()
       local cmp = require("cmp")
       cmp.setup({
