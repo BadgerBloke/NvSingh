@@ -34,6 +34,9 @@ return {
       -- you can do any additional lsp server setup here
       -- return true if you don't want this server to be setup with lspconfig
       setup = {
+        rust_analyzer = function()
+          return true
+        end,
         -- example to setup with typescript.nvim
         tsserver = function(_, opts)
           require("typescript").setup({ server = opts })
