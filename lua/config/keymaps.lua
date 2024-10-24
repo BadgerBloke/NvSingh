@@ -20,3 +20,10 @@ map("n", "<Leader>dr", "<cmd>lua require'dap'.run_last()<CR>", { desc = "Debugge
 
 -- rustaceanvim
 map("n", "<Leader>dt", "<cmd>lua vim.cmd('RustLsp testables')<CR>", { desc = "Debugger testables" })
+
+-- Harpoon
+map("n", "<Leader>hx", "<cmd>lua require'harpoon.mark'.add_file()<CR>", { desc = "Harpoon add file" })
+map("n", "<Leader>hn", "<cmd>lua require'harpoon.ui'.nav_next()<CR>", { desc = "Harpoon nav next" })
+map("n", "<Leader>hp", "<cmd>lua require'harpoon.ui'.nav_prev()<CR>", { desc = "Harpoon nav prev" })
+map("n", "<Leader>hc", "<cmd>lua require'harpoon.ui'.clear_all()<CR>", { desc = "Harpoon clear all" })
+map("n", "<Leader>hm", "<cmd>lua require'harpoon.ui'.toggle_quick_menu()<CR>", { desc = "Harpoon toggle quick menu" })
