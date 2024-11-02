@@ -27,3 +27,11 @@ map("n", "<Leader>hn", "<cmd>lua require'harpoon.ui'.nav_next()<CR>", { desc = "
 map("n", "<Leader>hp", "<cmd>lua require'harpoon.ui'.nav_prev()<CR>", { desc = "Harpoon nav prev" })
 map("n", "<Leader>hc", "<cmd>lua require'harpoon.ui'.clear_all()<CR>", { desc = "Harpoon clear all" })
 map("n", "<Leader>hm", "<cmd>lua require'harpoon.ui'.toggle_quick_menu()<CR>", { desc = "Harpoon toggle quick menu" })
+
+-- LSP
+map(
+  "n",
+  "<leader>i",
+  "<cmd>lua vim.diagnostic.open_float(nil, {focus=false, scope='cursor'})<CR>",
+  { desc = "LSP Hover" }
+)
