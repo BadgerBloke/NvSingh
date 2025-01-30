@@ -15,6 +15,9 @@ return {
   {
     "neovim/nvim-lspconfig",
     dependencies = {
+      dependencies = {
+        "hrsh7th/cmp-nvim-lsp",
+      },
       "jose-elias-alvarez/typescript.nvim",
       init = function()
         require("lazyvim.util").lsp.on_attach(function(_, buffer)
