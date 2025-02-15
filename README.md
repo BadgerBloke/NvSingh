@@ -25,3 +25,13 @@ sudo apt-get install ripgrep
 ```bash
 sudo apt-get install fd-find
 ```
+
+## External Dependencies for Windows
+
+```bash
+choco install ripgrep
+```
+
+```bash
+choco install fzf
+```

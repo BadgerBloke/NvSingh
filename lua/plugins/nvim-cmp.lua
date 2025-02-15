@@ -1,6 +1,7 @@
 return {
   {
     "hrsh7th/nvim-cmp",
+    enabled = true,
     keys = {
       { "<tab>", false, mode = { "i", "s" } },
       { "<s-tab>", false, mode = { "i", "s" } },
@@ -23,6 +24,9 @@ return {
       end
 
       cmp.setup({
+        buffer = {
+          sources = { { name = "crates" } },
+        },
         snippet = {
           expand = function(args)
             vim.snippet.expand(args.body)
