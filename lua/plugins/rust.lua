@@ -1,79 +1,94 @@
 return {
+  "Saecki/crates.nvim",
+  event = { "BufRead Cargo.toml" },
+  opts = {
+    completion = {
+      crates = {
+        enabled = true,
+      },
+    },
+    lsp = {
+      enabled = true,
+      actions = true,
+      completion = true,
+      hover = true,
+    },
+  },
   {
     "mrcjkb/rustaceanvim",
-    version = "^5", -- Recommended
-    lazy = false, -- This plugin is already lazy
-    ft = "rust",
-    config = function()
-      local mason_registry = require("mason-registry")
-      local codelldb = mason_registry.get_package("codelldb")
-      local extension_path = codelldb:get_install_path() .. "/extension/"
-      local codelldb_path = extension_path .. "adapter/codelldb"
-      local liblldb_path = extension_path .. "lldb/lib/liblldb.dylib"
-      -- If you are on Linux, replace the line above with the line below:
-      -- local liblldb_path = extension_path .. "lldb/lib/liblldb.so"
-      local cfg = require("rustaceanvim.config")
-
-      vim.g.rustaceanvim = {
-        cmd = function()
-          local mason_registry = require("mason-registry")
-          local ra_binary = mason_registry.is_installed("rust-analyzer")
-              -- This may need to be tweaked, depending on the operating system.
-              and mason_registry.get_package("rust-analyzer"):get_install_path() .. "/rust-analyzer"
-            or "rust-analyzer"
-          return { ra_binary } -- You can add args to the list, such as '--log-file'
+    version = vim.fn.has("nvim-0.10.0") == 0 and "^4" or false,
+    ft = { "rust" },
+    opts = {
+      server = {
+        on_attach = function(_, bufnr)
+          vim.keymap.set("n", "<leader>cR", function()
+            vim.cmd.RustLsp("codeAction")
+          end, { desc = "Code Action", buffer = bufnr })
+          vim.keymap.set("n", "<leader>dr", function()
+            vim.cmd.RustLsp("debuggables")
+          end, { desc = "Rust Debuggables", buffer = bufnr })
         end,
-        dap = {
-          adapter = cfg.get_codelldb_adapter(codelldb_path, liblldb_path),
-        },
-      }
-    end,
-  },
-
-  {
-    "mfussenegger/nvim-dap",
-    config = function()
-      local dap, dapui = require("dap"), require("dapui")
-      dap.listeners.before.attach.dapui_config = function()
-        dapui.open()
-      end
-      dap.listeners.before.launch.dapui_config = function()
-        dapui.open()
-      end
-      dap.listeners.before.event_terminated.dapui_config = function()
-        dapui.close()
-      end
-      dap.listeners.before.event_exited.dapui_config = function()
-        dapui.close()
-      end
-    end,
-  },
-  {
-    "rcarriga/nvim-dap-ui",
-    dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
-    config = function()
-      require("dapui").setup()
-    end,
-  },
-  -- {
-  --   "rust-lang/rust.vim",
-  --   ft = "rust",
-  --   init = function()
-  --     vim.g.rustfmt_autosave = 1
-  --   end,
-  --   url = "git@github.com:rust-lang/rust.vim.git",
-  -- },
-  {
-    "saecki/crates.nvim",
-    ft = { "toml" },
-    config = function()
-      require("crates").setup({
-        completion = {
-          cmp = {
-            enabled = true,
+        default_settings = {
+          -- rust-analyzer language server configuration
+          ["rust-analyzer"] = {
+            cargo = {
+              allFeatures = true,
+              loadOutDirsFromCheck = true,
+              buildScripts = {
+                enable = true,
+              },
+            },
+            -- Add clippy lints for Rust if using rust-analyzer
+            checkOnSave = diagnostics == "rust-analyzer",
+            -- Enable diagnostics if using rust-analyzer
+            diagnostics = {
+              enable = diagnostics == "rust-analyzer",
+            },
+            procMacro = {
+              enable = true,
+              ignored = {
+                ["async-trait"] = { "async_trait" },
+                ["napi-derive"] = { "napi" },
+                ["async-recursion"] = { "async_recursion" },
+              },
+            },
+            files = {
+              excludeDirs = {
+                ".direnv",
+                ".git",
+                ".github",
+                ".gitlab",
+                "bin",
+                "node_modules",
+                "target",
+                "venv",
+                ".venv",
+              },
+            },
           },
         },
-      })
+      },
+    },
+    config = function(_, opts)
+      if LazyVim.has("mason.nvim") then
+        local package_path = require("mason-registry").get_package("codelldb"):get_install_path()
+        local codelldb = package_path .. "/extension/adapter/codelldb"
+        local library_path = package_path .. "/extension/lldb/lib/liblldb.dylib"
+        local uname = io.popen("uname"):read("*l")
+        if uname == "Linux" then
+          library_path = package_path .. "/extension/lldb/lib/liblldb.so"
+        end
+        opts.dap = {
+          adapter = require("rustaceanvim.config").get_codelldb_adapter(codelldb, library_path),
+        }
+      end
+      vim.g.rustaceanvim = vim.tbl_deep_extend("keep", vim.g.rustaceanvim or {}, opts or {})
+      if vim.fn.executable("rust-analyzer") == 0 then
+        LazyVim.error(
+          "**rust-analyzer** not found in PATH, please install it.\nhttps://rust-analyzer.github.io/",
+          { title = "rustaceanvim" }
+        )
+      end
     end,
   },
 }
