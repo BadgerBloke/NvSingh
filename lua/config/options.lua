@@ -13,3 +13,6 @@ vim.g.lazyvim_rust_diagnostics = "rust-analyzer"
 -- Enable the option to require a Prettier config file
 -- If no prettier config file is found, the formatter will not be used
 vim.g.lazyvim_prettier_needs_config = true
+
+-- Show the file path in the window titlebar
+vim.opt.winbar = "%=%m %f"
