@@ -5,9 +5,7 @@ return {
     servers = {
       eslint = {
         settings = {
-          -- helps eslint find the eslintrc when it's placed in a subfolder instead of the cwd root
           workingDirectories = { mode = "auto" },
-          -- Enable auto fix on save
           codeAction = {
             disableRuleComment = {
               enable = true,
@@ -38,28 +36,36 @@ return {
     },
     setup = {
       eslint = function()
-        local function get_client(buf)
-          return require("lazyvim.util").lsp.get_clients({ name = "eslint", bufnr = buf })[1]
-        end
+        -- Explicitly disable formatters other than ESLint for JS/TS files
+        vim.api.nvim_create_autocmd("FileType", {
+          pattern = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+          callback = function()
+            -- Disable other formatters for these file types
+            vim.b.formatting_disabled = true
 
-        local formatter = require("lazyvim.util").lsp.formatter({
-          name = "eslint: lsp",
-          primary = true, -- Set to true to make it primary formatter
-          priority = 200,
-          filter = "eslint",
+            -- But allow ESLint formatting
+            local client = require("lazyvim.util").lsp.get_clients({ name = "eslint", bufnr = 0 })[1]
+            if client then
+              vim.b.formatting_disabled = false
+            end
+          end,
         })
 
-        -- Register the formatter with LazyVim
-        require("lazyvim.util").format.register(formatter)
+        -- Create a dedicated command for ESLint fixing
+        vim.api.nvim_create_user_command("EslintFormat", function()
+          local client = require("lazyvim.util").lsp.get_clients({ name = "eslint", bufnr = 0 })[1]
+          if client then
+            vim.cmd("EslintFixAll")
+          end
+        end, {})
 
-        -- Add additional setup for import sorting
+        -- Create more reliable autocmd for formatting on save
         vim.api.nvim_create_autocmd("BufWritePre", {
           pattern = { "*.js", "*.jsx", "*.ts", "*.tsx" },
-          callback = function(args)
-            local client = get_client(args.buf)
-            if client then
-              vim.cmd("EslintFixAll")
-            end
+          callback = function()
+            pcall(function()
+              vim.cmd("EslintFormat")
+            end)
           end,
         })
       end,
