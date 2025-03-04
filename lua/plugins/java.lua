@@ -15,14 +15,25 @@ return {
 
     -- Ensure required Mason packages are installed
     local ensure_installed = function(package_name)
-      if not mason_registry.is_installed(package_name) then
-        vim.cmd("MasonInstall " .. package_name)
+      if mason_registry.has_package(package_name) then
+        if not mason_registry.is_installed(package_name) then
+          vim.cmd("MasonInstall " .. package_name)
+        end
+      else
+        print("Package " .. package_name .. " not found in Mason registry")
       end
     end
 
     ensure_installed("jdtls")
     ensure_installed("java-debug-adapter")
     ensure_installed("java-test")
+
+    -- Try to install vscode-spring-boot extension (it might not be available in Mason)
+    if mason_registry.has_package("vscode-spring-boot") then
+      ensure_installed("vscode-spring-boot")
+    elseif mason_registry.has_package("spring-boot-java-language-server") then
+      ensure_installed("spring-boot-java-language-server")
+    end
 
     -- Defer setup to FileType event for better LazyVim compatibility
     vim.api.nvim_create_autocmd("FileType", {
@@ -77,6 +88,19 @@ return {
             vim.split(vim.fn.glob(java_debug_path .. "/extension/server/com.microsoft.java.debug.plugin-*.jar"), "\n")
           if java_debug_bundle[1] ~= "" then
             vim.list_extend(bundles, java_debug_bundle)
+          end
+        end
+
+        -- Try to get spring boot bundles if they exist
+        local spring_boot_bundles = {}
+        for _, name in ipairs({ "vscode-spring-boot", "spring-boot-java-language-server" }) do
+          if mason_registry.is_installed(name) then
+            local path = mason_registry.get_package(name):get_install_path()
+            local spring_jar = vim.fn.glob(path .. "/extension/server/spring-boot-language-server-*.jar")
+            if spring_jar ~= "" then
+              table.insert(spring_boot_bundles, spring_jar)
+              break
+            end
           end
         end
 
@@ -148,32 +172,38 @@ return {
               format = {
                 enabled = true,
               },
+              completion = {
+                favoriteStaticMembers = {
+                  "org.hamcrest.MatcherAssert.assertThat",
+                  "org.hamcrest.Matchers.*",
+                  "org.hamcrest.CoreMatchers.*",
+                  "org.junit.jupiter.api.Assertions.*",
+                  "java.util.Objects.requireNonNull",
+                  "java.util.Objects.requireNonNullElse",
+                  "org.mockito.Mockito.*",
+                  -- Spring-related imports
+                  "org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*",
+                  "org.springframework.test.web.servlet.result.MockMvcResultMatchers.*",
+                },
+              },
+              sources = {
+                organizeImports = {
+                  starThreshold = 9999,
+                  staticStarThreshold = 9999,
+                },
+              },
+              codeGeneration = {
+                toString = {
+                  template = "${object.className}{${member.name()}=${member.value}, ${otherMembers}}",
+                },
+                useBlocks = true,
+              },
             },
             signatureHelp = {
               enabled = true,
             },
-            completion = {
-              favoriteStaticMembers = {
-                "org.hamcrest.MatcherAssert.assertThat",
-                "org.hamcrest.Matchers.*",
-                "org.hamcrest.CoreMatchers.*",
-                "org.junit.jupiter.api.Assertions.*",
-                "java.util.Objects.requireNonNull",
-                "java.util.Objects.requireNonNullElse",
-                "org.mockito.Mockito.*",
-              },
-            },
-            sources = {
-              organizeImports = {
-                starThreshold = 9999,
-                staticStarThreshold = 9999,
-              },
-            },
-            codeGeneration = {
-              toString = {
-                template = "${object.className}{${member.name()}=${member.value}, ${otherMembers}}",
-              },
-              useBlocks = true,
+            contentProvider = {
+              preferred = "fernflower",
             },
           },
           flags = {
@@ -181,7 +211,24 @@ return {
           },
           capabilities = require("cmp_nvim_lsp").default_capabilities(),
           init_options = {
-            bundles = bundles,
+            bundles = vim.list_extend(bundles, spring_boot_bundles),
+            -- Enable extended client capabilities
+            extendedClientCapabilities = {
+              progressReportProvider = true,
+              classFileContentsSupport = true,
+              overrideMethodsPromptSupport = true,
+              hashCodeEqualsPromptSupport = true,
+              advancedOrganizeImportsSupport = true,
+              advancedGenerateAccessorsSupport = true,
+              advancedExtractRefactoringSupport = true,
+              generateToStringPromptSupport = true,
+              advancedGenerateToStringSupport = true,
+              generateConstructorsPromptSupport = true,
+              generateDelegateMethodsPromptSupport = true,
+              moveRefactoringSupport = true,
+              clientHoverProvider = true,
+              resolveAdditionalTextEditsSupport = true,
+            },
           },
         }
 
@@ -202,6 +249,16 @@ return {
         safe_keymap("n", "<leader>jc", function()
           jdtls.compile("full")
         end, { buffer = 0, desc = "Compile Project" })
+
+        -- Spring Boot specific keymaps - these use Telescope to search for Spring-related symbols
+        if pcall(require, "telescope") then
+          safe_keymap("n", "<leader>jb", function()
+            vim.cmd("Telescope lsp_workspace_symbols query=@")
+          end, { buffer = 0, desc = "List Spring Beans" })
+          safe_keymap("n", "<leader>je", function()
+            vim.cmd("Telescope lsp_workspace_symbols query=@/")
+          end, { buffer = 0, desc = "List REST Endpoints" })
+        end
 
         -- Check if jdtls.dap module exists before setting up DAP keymaps
         if jdtls.dap and jdtls.dap.setup_dap_main_class_configs then
