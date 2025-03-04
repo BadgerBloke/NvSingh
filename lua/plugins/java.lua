@@ -1,45 +1,221 @@
 return {
-  "nvim-java/nvim-java",
-  config = false,
+  "mfussenegger/nvim-jdtls",
   dependencies = {
-    {
-      "neovim/nvim-lspconfig",
-      opts = {
-        servers = {
-          -- Your JDTLS configuration goes here
-          jdtls = {
-            settings = {
-              java = {
-                configuration = {
-                  runtimes = {
-                    {
-                      name = "JavaSE-21",
-                      path = "/opt/jdk-21",
-                    },
+    "williamboman/mason.nvim",
+    "williamboman/mason-lspconfig.nvim",
+    "neovim/nvim-lspconfig",
+    "hrsh7th/cmp-nvim-lsp",
+    "mfussenegger/nvim-dap",
+    "nvim-lua/plenary.nvim",
+  },
+  ft = { "java" },
+  config = function()
+    local home = os.getenv("USERPROFILE") or os.getenv("HOME")
+    local mason_registry = require("mason-registry")
+
+    -- Ensure required Mason packages are installed
+    local ensure_installed = function(package_name)
+      if not mason_registry.is_installed(package_name) then
+        vim.cmd("MasonInstall " .. package_name)
+      end
+    end
+
+    ensure_installed("jdtls")
+    ensure_installed("java-debug-adapter")
+    ensure_installed("java-test")
+
+    -- Defer setup to FileType event for better LazyVim compatibility
+    vim.api.nvim_create_autocmd("FileType", {
+      pattern = "java",
+      callback = function()
+        local jdtls = require("jdtls")
+        local jdtls_setup = require("jdtls.setup")
+
+        -- Custom function to find project root
+        local root_markers = {
+          "pom.xml",
+          "build.gradle",
+          "build.gradle.kts",
+          "settings.gradle",
+          "settings.gradle.kts",
+          ".git",
+          "mvnw",
+          "gradlew",
+        }
+
+        local root_dir = jdtls_setup.find_root(root_markers)
+        if root_dir == "" then
+          root_dir = vim.fn.getcwd()
+        end
+
+        -- Get proper workspace folder name for LSP data
+        local project_name = vim.fn.fnamemodify(root_dir, ":p:h:t")
+        local workspace_dir = home .. "/.cache/jdtls-workspace/" .. project_name
+
+        -- Ensure workspace directory exists
+        vim.fn.mkdir(workspace_dir, "p")
+
+        -- Set up DAP
+        jdtls_setup.add_commands()
+
+        -- Make sure java-test and java-debug-adapter are installed
+        local bundles = {}
+
+        -- Get java-test path if installed
+        if mason_registry.is_installed("java-test") then
+          local java_test_path = mason_registry.get_package("java-test"):get_install_path()
+          local java_test_bundle = vim.split(vim.fn.glob(java_test_path .. "/extension/server/*.jar"), "\n")
+          if java_test_bundle[1] ~= "" then
+            vim.list_extend(bundles, java_test_bundle)
+          end
+        end
+
+        -- Get java-debug-adapter path if installed
+        if mason_registry.is_installed("java-debug-adapter") then
+          local java_debug_path = mason_registry.get_package("java-debug-adapter"):get_install_path()
+          local java_debug_bundle =
+            vim.split(vim.fn.glob(java_debug_path .. "/extension/server/com.microsoft.java.debug.plugin-*.jar"), "\n")
+          if java_debug_bundle[1] ~= "" then
+            vim.list_extend(bundles, java_debug_bundle)
+          end
+        end
+
+        -- Command that starts the language server
+        local cmd = {
+          -- IMPORTANT: Use your system-installed Java here, not from Mason
+          "C:\\Program Files\\Java\\jdk-21\\bin\\java.exe",
+
+          -- Adjust JVM settings as needed
+          "-Declipse.application=org.eclipse.jdt.ls.core.id1",
+          "-Dosgi.bundles.defaultStartLevel=4",
+          "-Declipse.product=org.eclipse.jdt.ls.core.product",
+          "-Dlog.protocol=true",
+          "-Dlog.level=ALL",
+          "-Xmx1G",
+          "--add-modules=ALL-SYSTEM",
+          "--add-opens",
+          "java.base/java.util=ALL-UNNAMED",
+          "--add-opens",
+          "java.base/java.lang=ALL-UNNAMED",
+
+          -- Get JDTLS from Mason
+          "-jar",
+          vim.fn.glob(
+            home .. "/AppData/Local/nvim-data/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_*.jar"
+          ),
+
+          -- Configuration path
+          "-configuration",
+          home .. "/AppData/Local/nvim-data/mason/packages/jdtls/config_win",
+
+          -- Apply bundles
+          "-data",
+          workspace_dir,
+        }
+
+        -- Main config
+        local config = {
+          cmd = cmd,
+          root_dir = root_dir,
+          settings = {
+            java = {
+              home = "C:\\Program Files\\Java\\jdk-21",
+              eclipse = {
+                downloadSources = true,
+              },
+              configuration = {
+                updateBuildConfiguration = "interactive",
+                runtimes = {
+                  {
+                    name = "JavaSE-21",
+                    path = "C:\\Program Files\\Java\\jdk-21",
+                    default = true,
                   },
                 },
               },
+              maven = {
+                downloadSources = true,
+              },
+              implementationsCodeLens = {
+                enabled = true,
+              },
+              referencesCodeLens = {
+                enabled = true,
+              },
+              references = {
+                includeDecompiledSources = true,
+              },
+              format = {
+                enabled = true,
+              },
+            },
+            signatureHelp = {
+              enabled = true,
+            },
+            completion = {
+              favoriteStaticMembers = {
+                "org.hamcrest.MatcherAssert.assertThat",
+                "org.hamcrest.Matchers.*",
+                "org.hamcrest.CoreMatchers.*",
+                "org.junit.jupiter.api.Assertions.*",
+                "java.util.Objects.requireNonNull",
+                "java.util.Objects.requireNonNullElse",
+                "org.mockito.Mockito.*",
+              },
+            },
+            sources = {
+              organizeImports = {
+                starThreshold = 9999,
+                staticStarThreshold = 9999,
+              },
+            },
+            codeGeneration = {
+              toString = {
+                template = "${object.className}{${member.name()}=${member.value}, ${otherMembers}}",
+              },
+              useBlocks = true,
             },
           },
-        },
-        setup = {
-          jdtls = function()
-            -- Your nvim-java configuration goes here
-            require("java").setup({
-              root_markers = {
-                "settings.gradle",
-                "settings.gradle.kts",
-                "pom.xml",
-                "build.gradle",
-                "mvnw",
-                "gradlew",
-                "build.gradle",
-                "build.gradle.kts",
-              },
-            })
-          end,
-        },
-      },
-    },
-  },
+          flags = {
+            allow_incremental_sync = true,
+          },
+          capabilities = require("cmp_nvim_lsp").default_capabilities(),
+          init_options = {
+            bundles = bundles,
+          },
+        }
+
+        -- Set up JDTLS for current buffer
+        jdtls.start_or_attach(config)
+
+        -- Safe keymapping function that checks if functions exist before binding
+        local function safe_keymap(mode, lhs, rhs, opts)
+          if type(rhs) == "function" or type(rhs) == "string" then
+            vim.keymap.set(mode, lhs, rhs, opts)
+          end
+        end
+
+        -- Set up key mappings for Java development if functions exist
+        safe_keymap("n", "<leader>ji", jdtls.organize_imports, { buffer = 0, desc = "Organize Imports" })
+        safe_keymap("n", "<leader>jt", jdtls.test_class, { buffer = 0, desc = "Test Class" })
+        safe_keymap("n", "<leader>jn", jdtls.test_nearest_method, { buffer = 0, desc = "Test Nearest Method" })
+        safe_keymap("n", "<leader>jc", function()
+          jdtls.compile("full")
+        end, { buffer = 0, desc = "Compile Project" })
+
+        -- Check if jdtls.dap module exists before setting up DAP keymaps
+        if jdtls.dap and jdtls.dap.setup_dap_main_class_configs then
+          safe_keymap("n", "<leader>jv", function()
+            jdtls.dap.setup_dap_main_class_configs()
+          end, { buffer = 0, desc = "Setup DAP Main Class" })
+        end
+
+        -- Check if jdtls.outline function exists
+        if jdtls.outline then
+          safe_keymap("n", "<leader>jo", jdtls.outline, { buffer = 0, desc = "Show Outline" })
+        end
+      end,
+      group = vim.api.nvim_create_augroup("jdtls_config", { clear = true }),
+    })
+  end,
 }
