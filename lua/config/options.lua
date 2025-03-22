@@ -16,3 +16,5 @@ vim.g.lazyvim_prettier_needs_config = true
 
 -- Show the file path in the window titlebar
 vim.opt.winbar = "%=%m %f"
+
+vim.opt.shiftwidth = 4 -- Set the number of spaces for each step of (auto)indent
