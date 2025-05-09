@@ -6,20 +6,19 @@ return {
     ft = "rust",
     config = function()
       local mason_registry = require("mason-registry")
-      local codelldb = mason_registry.get_package("codelldb")
-      local extension_path = codelldb:get_install_path() .. "/extension/"
+      -- Updated: Using $MASON instead of get_install_path()
+      local extension_path = vim.fn.expand("$MASON/packages/codelldb/extension/")
       local codelldb_path = extension_path .. "adapter/codelldb"
       local liblldb_path = extension_path .. "lldb/lib/liblldb.dylib"
       -- If you are on Linux, replace the line above with the line below:
       -- local liblldb_path = extension_path .. "lldb/lib/liblldb.so"
       local cfg = require("rustaceanvim.config")
-
       vim.g.rustaceanvim = {
         cmd = function()
           local mason_registry = require("mason-registry")
           local ra_binary = mason_registry.is_installed("rust-analyzer")
-              -- This may need to be tweaked, depending on the operating system.
-              and mason_registry.get_package("rust-analyzer"):get_install_path() .. "/rust-analyzer"
+              -- Using $MASON environment variable instead of get_install_path()
+              and vim.fn.expand("$MASON/bin/rust-analyzer")
             or "rust-analyzer"
           return { ra_binary } -- You can add args to the list, such as '--log-file'
         end,
