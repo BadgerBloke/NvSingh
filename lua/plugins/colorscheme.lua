@@ -30,7 +30,7 @@ return {
     opts = {
       -- colorscheme = "catppuccin",
       -- colorscheme = "tokyonight-night",
-      colorscheme = "github_dark_default",
+      colorscheme = "github_dark_tritanopia",
     },
   },
 }
