@@ -34,12 +34,19 @@ return {
   },
 
   {
+    "yorumicolors/yorumi.nvim",
+    lazy = false,
+    priority = 1000,
+  },
+
+  {
     "LazyVim/LazyVim",
     opts = {
       -- colorscheme = "catppuccin",
       -- colorscheme = "tokyonight-night",
       -- colorscheme = "github_dark_tritanopia",
-      colorscheme = "kanso-zen",
+      -- colorscheme = "kanso-zen",
+      colorscheme = "yorumi",
     },
   },
 }
