@@ -14,6 +14,7 @@ return {
       -- configurations
     },
   },
+
   {
     "projekt0n/github-nvim-theme",
     name = "github-theme",
@@ -25,12 +26,20 @@ return {
       -- vim.cmd("colorscheme github_dark")
     end,
   },
+
+  {
+    "webhooked/kanso.nvim",
+    lazy = false,
+    priority = 1000,
+  },
+
   {
     "LazyVim/LazyVim",
     opts = {
       -- colorscheme = "catppuccin",
       -- colorscheme = "tokyonight-night",
-      colorscheme = "github_dark_tritanopia",
+      -- colorscheme = "github_dark_tritanopia",
+      colorscheme = "kanso-zen",
     },
   },
 }
