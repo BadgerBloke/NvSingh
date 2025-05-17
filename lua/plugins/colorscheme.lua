@@ -7,6 +7,7 @@ return {
     config = function()
       require("catppuccin").setup({
         -- configurations
+        transparent_background = true,
       })
     end,
     -- or just use opts table
@@ -42,11 +43,11 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
-      -- colorscheme = "catppuccin",
+      colorscheme = "catppuccin",
       -- colorscheme = "tokyonight-night",
       -- colorscheme = "github_dark_tritanopia",
       -- colorscheme = "kanso-zen",
-      colorscheme = "yorumi",
+      -- colorscheme = "yorumi",
     },
   },
 }
