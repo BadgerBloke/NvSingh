@@ -37,3 +37,6 @@ map(
   "<cmd>lua vim.diagnostic.open_float(nil, {focus=false, scope='cursor'})<CR>",
   { desc = "LSP Hover" }
 )
+
+vim.keymap.set("x", "z/", "<C-\\><C-n>`</\\%V", { desc = "Search forward within visual selection" })
+vim.keymap.set("x", "z?", "<C-\\><C-n>`>?\\%V", { desc = "Search backward within visual selection" })
