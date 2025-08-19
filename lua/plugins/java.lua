@@ -1,4 +1,3 @@
--- nvim/lua/plugins/java.lua
 return {
   "mfussenegger/nvim-jdtls",
   ft = "java",
@@ -8,13 +7,13 @@ return {
   config = function()
     local home = os.getenv("HOME") or os.getenv("USERPROFILE")
     local is_windows = vim.fn.has("win32") == 1 or vim.fn.has("win64") == 1
-    
+
     -- Set paths based on OS
     local lombok_agent
     local java_cmd
     local jdtls_config_dir
     local java_runtime_path
-    
+
     if is_windows then
       -- Windows paths
       lombok_agent = home .. "\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\lombok.jar"
@@ -28,16 +27,16 @@ return {
       jdtls_config_dir = home .. "/.local/share/nvim/mason/packages/jdtls/config_mac"
       java_runtime_path = "/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home"
     end
-    
+
     -- Ensure Lombok agent is added to JVM arguments
     vim.env.JDTLS_JVM_ARGS = "-javaagent:" .. lombok_agent
-    
+
     vim.api.nvim_create_autocmd("FileType", {
       pattern = "java",
       callback = function()
         local jdtls = require("jdtls")
         local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
-        
+
         -- Create workspace directory path based on OS
         local workspace_dir
         if is_windows then
@@ -45,15 +44,18 @@ return {
         else
           workspace_dir = home .. "/.local/share/nvim/jdtls-workspace/" .. project_name
         end
-        
+
         -- Find the launcher jar using globbing patterns appropriate for the OS
         local launcher_jar
         if is_windows then
-          launcher_jar = vim.fn.glob(home .. "\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\plugins\\org.eclipse.equinox.launcher_*.jar")
+          launcher_jar = vim.fn.glob(
+            home .. "\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\plugins\\org.eclipse.equinox.launcher_*.jar"
+          )
         else
-          launcher_jar = vim.fn.glob(home .. "/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_*.jar")
+          launcher_jar =
+            vim.fn.glob(home .. "/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_*.jar")
         end
-        
+
         local config = {
           cmd = {
             java_cmd,
@@ -105,9 +107,9 @@ return {
             },
           },
         }
-        
+
         jdtls.start_or_attach(config)
-        
+
         -- Debug keymap
         vim.keymap.set("n", "<leader>ll", function()
           vim.notify("Lombok Agent: " .. lombok_agent, vim.log.levels.INFO)

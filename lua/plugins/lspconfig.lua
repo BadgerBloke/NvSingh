@@ -1,7 +1,6 @@
 return {
   "neovim/nvim-lspconfig",
   opts = {
-    ---@type lspconfig.options
     servers = {
       eslint = {
         settings = {
@@ -81,10 +80,6 @@ return {
       -- Add setup function for Deno
       denols = function()
         -- Define your on_attach function if needed or use existing one
-        local on_attach = function(client, bufnr)
-          -- Add your on_attach logic here if needed
-        end
-
         -- The actual setup is handled by the servers configuration above
       end,
       -- Add setup function for TypeScript

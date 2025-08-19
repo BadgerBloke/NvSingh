@@ -1,7 +1,6 @@
--- In your plugins config
 return {
   {
-    "BadgerBloke/diagnostic-float.nvim",
+    "MKSinghDev/diagnostic-float.nvim",
     dependencies = { "neovim/nvim-lspconfig" },
     opts = {
       enabled = false,
