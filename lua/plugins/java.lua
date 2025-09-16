@@ -17,15 +17,15 @@ return {
     if is_windows then
       -- Windows paths
       lombok_agent = home .. "\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\lombok.jar"
-      java_cmd = "C:\\Program Files\\Java\\jdk-21\\bin\\java.exe"
+      java_cmd = "C:\\Program Files\\Java\\jdk-25\\bin\\java.exe"
       jdtls_config_dir = home .. "\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\config_win"
-      java_runtime_path = "C:\\Program Files\\Java\\jdk-21"
+      java_runtime_path = "C:\\Program Files\\Java\\jdk-25"
     else
       -- macOS/Linux paths
       lombok_agent = home .. "/.local/share/nvim/mason/packages/jdtls/lombok.jar"
       java_cmd = "java"
       jdtls_config_dir = home .. "/.local/share/nvim/mason/packages/jdtls/config_mac"
-      java_runtime_path = "/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home"
+      java_runtime_path = "/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home"
     end
 
     -- Ensure Lombok agent is added to JVM arguments
@@ -84,7 +84,7 @@ return {
               configuration = {
                 runtimes = {
                   {
-                    name = "JavaSE-21",
+                    name = "JavaSE-25",
                     path = java_runtime_path,
                   },
                 },
