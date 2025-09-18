@@ -1,14 +1,17 @@
 return {
   {
     "catppuccin/nvim",
-    lazy = false,
     name = "catppuccin",
-    -- you can do it like this with a config function
-    -- or just use opts table
-    opts = function(_, opts)
-      if (vim.g.colors_name or ""):find("catppuccin") then
-        opts.highlights = require("catppuccin.groups.integrations.bufferline").get_theme()
-      end
+    priority = 1000,
+    lazy = false,
+    config = function()
+      require("catppuccin").setup({
+        transparent_background = true,
+        float = {
+          transparent = true, -- enable transparent floating windows
+          solid = true, -- use solid styling for floating windows, see |winborder|
+        },
+      })
     end,
   },
 
@@ -39,9 +42,9 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
-      -- colorscheme = "catppuccin",
+      colorscheme = "catppuccin",
       -- colorscheme = "tokyonight-night",
-      colorscheme = "github_dark_tritanopia",
+      -- colorscheme = "github_dark_tritanopia",
       -- colorscheme = "kanso-zen",
       -- colorscheme = "yorumi",
     },

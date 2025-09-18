@@ -34,13 +34,23 @@ return {
       },
       -- Add Deno LSP configuration
       denols = {
-        root_dir = require("lspconfig").util.root_pattern("deno.json", "deno.jsonc"),
+        root_dir = function(bufnr, on_dir)
+          local root = vim.fs.root(bufnr, { "deno.json", "deno.jsonc" })
+          if root then
+            return on_dir(root)
+          end
+        end,
         single_file_support = false,
         settings = {},
       },
       -- Add TypeScript LSP configuration
       vtsls = {
-        root_dir = require("lspconfig").util.root_pattern({ "package.json", "tsconfig.json" }),
+        root_dir = function(bufnr, on_dir)
+          local root = vim.fs.root(bufnr, { "package.json", "tsconfig.json", "jsconfig.json" })
+          if root then
+            return on_dir(root)
+          end
+        end,
         single_file_support = false,
         settings = {},
       },
@@ -54,7 +64,7 @@ return {
             -- Disable other formatters for these file types
             vim.b.formatting_disabled = true
             -- But allow ESLint formatting
-            local client = require("lazyvim.util").lsp.get_clients({ name = "eslint", bufnr = 0 })[1]
+            local client = (vim.lsp.get_clients and vim.lsp.get_clients({ name = "eslint", bufnr = 0 }) or {})[1]
             if client then
               vim.b.formatting_disabled = false
             end
@@ -62,7 +72,7 @@ return {
         })
         -- Create a dedicated command for ESLint fixing
         vim.api.nvim_create_user_command("EslintFormat", function()
-          local client = require("lazyvim.util").lsp.get_clients({ name = "eslint", bufnr = 0 })[1]
+          local client = (vim.lsp.get_clients and vim.lsp.get_clients({ name = "eslint", bufnr = 0 }) or {})[1]
           if client then
             vim.cmd("EslintFixAll")
           end
