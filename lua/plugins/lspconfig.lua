@@ -70,19 +70,12 @@ return {
             end
           end,
         })
-        -- Create a dedicated command for ESLint fixing
-        vim.api.nvim_create_user_command("EslintFormat", function()
-          local client = (vim.lsp.get_clients and vim.lsp.get_clients({ name = "eslint", bufnr = 0 }) or {})[1]
-          if client then
-            vim.cmd("EslintFixAll")
-          end
-        end, {})
         -- Create more reliable autocmd for formatting on save
         vim.api.nvim_create_autocmd("BufWritePre", {
           pattern = { "*.js", "*.jsx", "*.ts", "*.tsx" },
           callback = function()
             pcall(function()
-              vim.cmd("EslintFormat")
+              vim.cmd("LspEslintFixAll")
             end)
           end,
         })
