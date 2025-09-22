@@ -5,28 +5,68 @@ return {
     "neovim/nvim-lspconfig",
   },
   config = function()
-    local home = os.getenv("HOME") or os.getenv("USERPROFILE")
-    local is_windows = vim.fn.has("win32") == 1 or vim.fn.has("win64") == 1
+    local home = os.getenv("HOME")
 
-    -- Set paths based on OS
-    local lombok_agent
-    local java_cmd
-    local jdtls_config_dir
-    local java_runtime_path
+    -- Function to get Java command and JAVA_HOME
+    local function get_java_info()
+      local java_cmd = "java"
+      local java_home = nil
 
-    if is_windows then
-      -- Windows paths
-      lombok_agent = home .. "\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\lombok.jar"
-      java_cmd = "C:\\Program Files\\Java\\jdk-25\\bin\\java.exe"
-      jdtls_config_dir = home .. "\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\config_win"
-      java_runtime_path = "C:\\Program Files\\Java\\jdk-25"
-    else
-      -- macOS/Linux paths
-      lombok_agent = home .. "/.local/share/nvim/mason/packages/jdtls/lombok.jar"
-      java_cmd = "java"
-      jdtls_config_dir = home .. "/.local/share/nvim/mason/packages/jdtls/config_mac"
-      java_runtime_path = "/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home"
+      -- Try to get JAVA_HOME from environment
+      java_home = os.getenv("JAVA_HOME")
+
+      -- If JAVA_HOME is not set, try to detect it
+      if not java_home then
+        -- Try SDKMAN current Java
+        local sdkman_java = home .. "/.sdkman/candidates/java/current"
+        if vim.fn.isdirectory(sdkman_java) == 1 then
+          java_home = sdkman_java
+          java_cmd = sdkman_java .. "/bin/java"
+        else
+          -- Try to find java executable and derive JAVA_HOME
+          local java_path = vim.fn.exepath("java")
+          if java_path and java_path ~= "" then
+            -- java_path is typically /path/to/java_home/bin/java
+            java_home = vim.fn.fnamemodify(java_path, ":h:h")
+            java_cmd = java_path
+          end
+        end
+      else
+        java_cmd = java_home .. "/bin/java"
+      end
+
+      return java_cmd, java_home
     end
+
+    -- Function to get Java version for runtime configuration
+    local function get_java_version(java_cmd)
+      local handle = io.popen(java_cmd .. " -version 2>&1")
+      if handle then
+        local result = handle:read("*a")
+        handle:close()
+
+        -- Extract version number (works for both old and new versioning schemes)
+        local major_version = result:match('version "(%d+)')
+        if major_version then
+          return tonumber(major_version)
+        end
+
+        -- Fallback for different version formats
+        local version_match = result:match('version "1%.(%d+)') -- For Java 8 and below
+        if version_match then
+          return tonumber(version_match)
+        end
+      end
+      return 21 -- Default fallback
+    end
+
+    local java_cmd, java_home = get_java_info()
+    local java_version = get_java_version(java_cmd)
+
+    -- Set macOS paths
+    local mason_path = home .. "/.local/share/nvim/mason"
+    local lombok_agent = mason_path .. "/packages/jdtls/lombok.jar"
+    local jdtls_config_dir = mason_path .. "/packages/jdtls/config_mac"
 
     -- Ensure Lombok agent is added to JVM arguments
     vim.env.JDTLS_JVM_ARGS = "-javaagent:" .. lombok_agent
@@ -37,57 +77,58 @@ return {
         local jdtls = require("jdtls")
         local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
 
-        -- Create workspace directory path based on OS
-        local workspace_dir
-        if is_windows then
-          workspace_dir = home .. "\\AppData\\Local\\nvim-data\\jdtls-workspace\\" .. project_name
-        else
-          workspace_dir = home .. "/.local/share/nvim/jdtls-workspace/" .. project_name
-        end
+        -- Create workspace directory path
+        local workspace_dir = home .. "/.local/share/nvim/jdtls-workspace/" .. project_name
 
-        -- Find the launcher jar using globbing patterns appropriate for the OS
-        local launcher_jar
-        if is_windows then
-          launcher_jar = vim.fn.glob(
-            home .. "\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\plugins\\org.eclipse.equinox.launcher_*.jar"
-          )
-        else
-          launcher_jar =
-            vim.fn.glob(home .. "/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_*.jar")
-        end
+        -- Find the launcher jar
+        local launcher_jar = vim.fn.glob(mason_path .. "/packages/jdtls/plugins/org.eclipse.equinox.launcher_*.jar")
 
-        local config = {
-          cmd = {
-            java_cmd,
-            "-Declipse.application=org.eclipse.jdt.ls.core.id1",
-            "-Dosgi.bundles.defaultStartLevel=4",
-            "-Declipse.product=org.eclipse.jdt.ls.core.product",
-            "-Dlog.protocol=true",
-            "-Dlog.level=ALL",
-            "-Xmx1g",
+        -- Build JVM arguments based on Java version
+        local jvm_args = {
+          "-Declipse.application=org.eclipse.jdt.ls.core.id1",
+          "-Dosgi.bundles.defaultStartLevel=4",
+          "-Declipse.product=org.eclipse.jdt.ls.core.product",
+          "-Dlog.protocol=true",
+          "-Dlog.level=ALL",
+          "-Xmx1g",
+          "-javaagent:" .. lombok_agent,
+        }
+
+        -- Add module system arguments for Java 9+
+        if java_version >= 9 then
+          vim.list_extend(jvm_args, {
             "--add-modules=ALL-SYSTEM",
             "--add-opens",
             "java.base/java.util=ALL-UNNAMED",
             "--add-opens",
             "java.base/java.lang=ALL-UNNAMED",
-            "-javaagent:" .. lombok_agent,
-            "-jar",
-            launcher_jar,
-            "-configuration",
-            jdtls_config_dir,
-            "-data",
-            workspace_dir,
-          },
+          })
+        end
+
+        local config = {
+          cmd = vim.list_extend(
+            {
+              java_cmd,
+            },
+            vim.list_extend(jvm_args, {
+              "-jar",
+              launcher_jar,
+              "-configuration",
+              jdtls_config_dir,
+              "-data",
+              workspace_dir,
+            })
+          ),
           root_dir = require("jdtls.setup").find_root({ ".git", "mvnw", "gradlew", "pom.xml", "build.gradle" }),
           settings = {
             java = {
               configuration = {
-                runtimes = {
+                runtimes = java_home and {
                   {
-                    name = "JavaSE-25",
-                    path = java_runtime_path,
+                    name = "JavaSE-" .. java_version,
+                    path = java_home,
                   },
-                },
+                } or {},
               },
               import = {
                 gradle = { enabled = true },
@@ -96,12 +137,28 @@ return {
               maven = {
                 downloadSources = true,
               },
+              signatureHelp = { enabled = true },
+              contentProvider = { preferred = "fernflower" },
+              completion = {
+                favoriteStaticMembers = {
+                  "org.hamcrest.MatcherAssert.assertThat",
+                  "org.hamcrest.Matchers.*",
+                  "org.hamcrest.CoreMatchers.*",
+                  "org.junit.jupiter.api.Assertions.*",
+                  "java.util.Objects.requireNonNull",
+                  "java.util.Objects.requireNonNullElse",
+                },
+              },
+              sources = {
+                organizeImports = {
+                  starThreshold = 9999,
+                  staticStarThreshold = 9999,
+                },
+              },
             },
           },
           init_options = {
-            bundles = {
-              lombok_agent,
-            },
+            bundles = {},
             extendedClientCapabilities = {
               classFileContentsSupport = true,
             },
@@ -112,9 +169,18 @@ return {
 
         -- Debug keymap
         vim.keymap.set("n", "<leader>ll", function()
+          vim.notify("Java Command: " .. java_cmd, vim.log.levels.INFO)
+          vim.notify("Java Home: " .. (java_home or "Not detected"), vim.log.levels.INFO)
+          vim.notify("Java Version: " .. java_version, vim.log.levels.INFO)
           vim.notify("Lombok Agent: " .. lombok_agent, vim.log.levels.INFO)
-          vim.notify("OS: " .. (is_windows and "Windows" or "macOS/Linux"), vim.log.levels.INFO)
-        end, { buffer = true, desc = "Show Lombok Agent Path and OS" })
+        end, { buffer = true, desc = "Show Java LSP Configuration" })
+
+        -- Additional useful keymaps
+        local bufopts = { noremap = true, silent = true, buffer = true }
+        vim.keymap.set("n", "<leader>co", jdtls.organize_imports, bufopts)
+        vim.keymap.set("n", "<leader>crv", jdtls.extract_variable, bufopts)
+        vim.keymap.set("n", "<leader>crc", jdtls.extract_constant, bufopts)
+        vim.keymap.set("v", "<leader>crm", [[<ESC><CMD>lua require('jdtls').extract_method(true)<CR>]], bufopts)
       end,
     })
   end,
