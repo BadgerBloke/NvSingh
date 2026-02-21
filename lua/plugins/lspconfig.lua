@@ -54,8 +54,26 @@ return {
         single_file_support = false,
         settings = {},
       },
+      -- Completely disable both kotlin LSP servers (kotlin.nvim manages it)
+      kotlin_language_server = {
+        autostart = false,
+        enabled = false,
+        filetypes = {}, -- Remove kotlin filetype association
+      },
+      kotlin_lsp = {
+        autostart = false,
+        enabled = false,
+        filetypes = {}, -- Remove kotlin filetype association
+      },
     },
     setup = {
+      -- Prevent both kotlin LSP servers from ever starting
+      kotlin_language_server = function()
+        return true
+      end,
+      kotlin_lsp = function()
+        return true
+      end,
       eslint = function()
         -- Explicitly disable formatters other than ESLint for JS/TS files
         vim.api.nvim_create_autocmd("FileType", {
