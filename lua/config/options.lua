@@ -1,6 +1,14 @@
 -- Options are automatically loaded before lazy.nvim startup
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
+
+-- Add Elixir to PATH for ElixirLS
+local elixir_path = vim.fn.trim(vim.fn.system("which elixir"))
+if elixir_path ~= "" and vim.fn.filereadable(elixir_path) == 1 then
+  local elixir_bin = vim.fn.fnamemodify(elixir_path, ":h")
+  vim.env.PATH = elixir_bin .. ":" .. vim.env.PATH
+end
+
 -- Set to false to disable auto format
 vim.g.lazyvim_eslint_auto_format = true
 
